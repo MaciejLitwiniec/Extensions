@@ -4,13 +4,15 @@ export interface IStartAuthenticationParams extends INodeFunctionBaseParams {
 	config: {
 		connection: {
 			clientId: string;
-			clientSecret: string;
+			clientSecret?: string; // Optional for backward compatibility
 		};
 		redirectUri: string;
 		scope: string;
 		tenant: string;
+		usePKCE: boolean; // Flag to enable/disable PKCE
 	};
 }
+
 export const startAuthenticationNode = createNodeDescriptor({
 	type: "startAuthentication",
 	defaultLabel: "Display Sign In Button",
@@ -20,9 +22,16 @@ export const startAuthenticationNode = createNodeDescriptor({
 			label: "Azure Connection",
 			type: "connection",
 			params: {
-				connectionType: "login",
+				connectionType: "login", // Keep original type for compatibility
 				required: true
 			}
+		},
+		{
+			key: "usePKCE",
+			label: "Use PKCE",
+			description: "Enable PKCE for enhanced security in single-page applications",
+			type: "toggle",
+			defaultValue: false
 		},
 		{
 			key: "redirectUri",
@@ -59,17 +68,26 @@ export const startAuthenticationNode = createNodeDescriptor({
 			fields: [
 				"tenant",
 			]
+		},
+		{
+			key: "securitySection",
+			label: "Security Settings",
+			defaultCollapsed: false,
+			fields: [
+				"usePKCE"
+			]
 		}
 	],
 	form: [
 		{ type: "field", key: "connection" },
 		{ type: "field", key: "redirectUri" },
 		{ type: "field", key: "scope" },
-		{ type: "section", key: "tenantSection" }
+		{ type: "section", key: "tenantSection" },
+		{ type: "section", key: "securitySection" }
 	],
 	function: async ({ cognigy, config }: IStartAuthenticationParams) => {
 		const { api } = cognigy;
-		const { redirectUri, scope, tenant, connection } = config;
+		const { redirectUri, scope, tenant, connection, usePKCE } = config;
 		const { clientId } = connection;
 
 		/* trigger the microsoft login webchat plugin */
@@ -79,9 +97,9 @@ export const startAuthenticationNode = createNodeDescriptor({
 				clientId,
 				redirectUri,
 				scope,
-				tenant
+				tenant,
+				usePKCE: usePKCE // Use the value from the toggle field
 			}
 		});
-
 	}
 });
